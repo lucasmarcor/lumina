@@ -76,7 +76,10 @@
   <script>
     // --- 1. REEMPLAZÁ CON TUS DATOS DE SUPABASE ---
     const SUPABASE_URL = "https://jiitqxjhxteayixongez.supabase.co";
+    // REEMPLAZAR LA CLAVE DE ABAJO POR TU CLAVE 'anon public' QUE EMPIEZA CON eyJ...
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; 
+    
+    // Solo declaramos 'supabase' una única vez:
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const loginScreen = document.getElementById("login-screen");
