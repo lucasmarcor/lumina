@@ -4,54 +4,109 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mi Música</title>
+  
+  <!-- Librerías de Supabase y Metadatos -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
+  
+  <!-- Iconos modernos de Google -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet" />
+
   <style>
-    :root { --bg: #121212; --card-bg: #181818; --accent: #1db954; --text: #ffffff; --text-muted: #b3b3b3; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-    body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; }
+    :root { 
+      --bg: #121212; 
+      --card-bg: #181818; 
+      --card-hover: #282828; 
+      --accent: #1db954; /* Verde estilo Spotify */
+      --text: #ffffff; 
+      --text-muted: #b3b3b3; 
+    }
     
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+    
+    /* Pantalla de Login */
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
     .btn-google { background: #ffffff; color: #000; border: none; padding: 12px 24px; border-radius: 24px; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 20px; display: flex; align-items: center; gap: 10px; }
     
+    /* App Principal */
     #app-screen { display: none; flex-direction: column; height: 100vh; }
-    header { padding: 20px; border-bottom: 1px solid #282828; display: flex; justify-content: space-between; align-items: center; }
-    .header-buttons { display: flex; gap: 10px; }
-    .btn { background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+    
+    header { padding: 20px 30px; display: flex; justify-content: space-between; align-items: center; background: rgba(0,0,0,0.5); }
+    .header-buttons { display: flex; gap: 15px; }
+    .btn { background: var(--accent); color: #000; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; transition: transform 0.1s; }
+    .btn:active { transform: scale(0.95); }
     .btn-logout { background: transparent; color: var(--text-muted); border: 1px solid var(--text-muted); }
     #file-input { display: none; }
     
-    main { flex: 1; overflow-y: auto; padding: 20px; }
-    .track-list { display: flex; flex-direction: column; gap: 8px; max-width: 800px; margin: 0 auto; }
-    .track-card { display: flex; align-items: center; gap: 16px; padding: 10px; background: var(--card-bg); border-radius: 8px; cursor: pointer; }
-    .track-card:hover { background: #282828; }
-    .track-card.active { border-left: 4px solid var(--accent); background: #222; }
+    /* Listado principal */
+    main { flex: 1; overflow-y: auto; padding: 20px 30px; padding-bottom: 100px; }
+    .track-list { display: flex; flex-direction: column; gap: 8px; max-width: 1000px; margin: 0 auto; }
+    .track-card { display: flex; align-items: center; gap: 16px; padding: 12px; background: var(--card-bg); border-radius: 8px; cursor: pointer; transition: background 0.2s; }
+    .track-card:hover { background: var(--card-hover); }
+    .track-card.active { background: #2a2a2a; }
+    .track-card.active h3 { color: var(--accent); }
     
     .cover-img { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; background: #333; }
-    .track-info h3 { font-size: 1rem; margin-bottom: 4px; }
+    .track-info h3 { font-size: 1rem; margin-bottom: 4px; font-weight: 600; }
     .track-info p { font-size: 0.85rem; color: var(--text-muted); }
+    #status { font-size: 0.9rem; text-align: center; margin-bottom: 15px; font-weight: bold; }
+
+    /* REPRODUCTOR INFERIOR */
+    footer { background-color: #181818; border-top: 1px solid #282828; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; height: 90px; }
     
-    footer { background-color: #181818; padding: 16px; text-align: center; border-top: 1px solid #282828; }
-    audio { width: 100%; max-width: 600px; height: 40px; margin-top: 10px; }
-    #status { font-size: 0.9rem; text-align: center; margin-bottom: 10px; font-weight: bold; }
+    /* 1. Info de la canción (Izquierda) */
+    .player-left { display: flex; align-items: center; gap: 15px; width: 30%; }
+    .player-left img { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; background: #282828; }
+    .player-left h4 { font-size: 0.9rem; margin-bottom: 4px; }
+    .player-left p { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* 2. Controles centrales */
+    .player-center { display: flex; flex-direction: column; align-items: center; width: 40%; max-width: 500px; }
+    .controls { display: flex; align-items: center; gap: 20px; margin-bottom: 8px; }
+    .control-btn { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .control-btn:hover { color: var(--text); }
+    .btn-play { background: var(--text); color: #000; border-radius: 50%; width: 35px; height: 35px; }
+    .btn-play:hover { transform: scale(1.05); color: #000; }
+    
+    /* Barra de progreso */
+    .progress-container { display: flex; align-items: center; gap: 10px; width: 100%; font-size: 0.75rem; color: var(--text-muted); }
+    input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; cursor: pointer; }
+    input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; background: #4d4d4d; border-radius: 2px; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 12px; width: 12px; border-radius: 50%; background: var(--text); margin-top: -4px; opacity: 0; transition: opacity 0.2s; }
+    input[type=range]:hover::-webkit-slider-thumb { opacity: 1; }
+    input[type=range]::-moz-range-track { width: 100%; height: 4px; background: #4d4d4d; border-radius: 2px; }
+    input[type=range]::-moz-range-thumb { height: 12px; width: 12px; border-radius: 50%; background: var(--text); border: none; opacity: 0; }
+    input[type=range]:hover::-moz-range-thumb { opacity: 1; }
+
+    /* 3. Volumen (Derecha) */
+    .player-right { display: flex; align-items: center; justify-content: flex-end; gap: 10px; width: 30%; color: var(--text-muted); }
+    .volume-slider { width: 100px !important; }
+
+    /* Audio real oculto */
+    audio { display: none; }
   </style>
 </head>
 <body>
 
+  <!-- PANTALLA DE LOGIN -->
   <div id="login-screen">
     <h1>🎧 Mi Música Privada</h1>
     <p style="color: var(--text-muted); margin-top: 10px;">Iniciá sesión para acceder a tu biblioteca</p>
     <button class="btn-google" onclick="loginGoogle()">
-      <img src="https://img.icons8.com/color/24/000000/google-logo.png" alt="Google">
+      <img src="https://img.icons8.com/color/24/000000/google-logo.png" alt="Google" width="20">
       Ingresar con Google
     </button>
   </div>
 
+  <!-- PANTALLA DE LA APP -->
   <div id="app-screen">
     <header>
-      <h1>Mi Biblioteca</h1>
+      <h1>Tu Biblioteca</h1>
       <div class="header-buttons">
-        <button class="btn" onclick="document.getElementById('file-input').click()">+ Subir Canción</button>
+        <button class="btn" onclick="document.getElementById('file-input').click()">
+          <span class="material-symbols-rounded">upload</span> Subir Canción
+        </button>
         <button class="btn btn-logout" onclick="logout()">Salir</button>
       </div>
       <input type="file" id="file-input" accept="audio/*">
@@ -62,37 +117,76 @@
       <div id="playlist" class="track-list">Cargando...</div>
     </main>
 
+    <!-- REPRODUCTOR -->
     <footer>
-      <div id="now-playing">Seleccioná una canción para reproducir</div>
-      <audio id="audio-player" controls autoplay></audio>
+      <!-- Izquierda: Portada y datos -->
+      <div class="player-left">
+        <img id="player-cover" src="https://via.placeholder.com/56" alt="Portada">
+        <div>
+          <h4 id="player-title">Sin reproducir</h4>
+          <p id="player-artist">-</p>
+        </div>
+      </div>
+
+      <!-- Centro: Controles y Progreso -->
+      <div class="player-center">
+        <div class="controls">
+          <button class="control-btn" onclick="playPrevious()">
+            <span class="material-symbols-rounded">skip_previous</span>
+          </button>
+          <button class="control-btn btn-play" onclick="togglePlay()">
+            <span class="material-symbols-rounded" id="play-icon">play_arrow</span>
+          </button>
+          <button class="control-btn" onclick="playNext()">
+            <span class="material-symbols-rounded">skip_next</span>
+          </button>
+        </div>
+        <div class="progress-container">
+          <span id="time-current">0:00</span>
+          <input type="range" id="progress-bar" value="0" min="0" step="1">
+          <span id="time-total">0:00</span>
+        </div>
+      </div>
+
+      <!-- Derecha: Volumen -->
+      <div class="player-right">
+        <span class="material-symbols-rounded">volume_up</span>
+        <input type="range" id="volume-bar" class="volume-slider" value="100" min="0" max="100">
+      </div>
+      
+      <!-- Audio invisible -->
+      <audio id="audio-player"></audio>
     </footer>
   </div>
 
   <script>
     // --- 1. CONFIGURACIÓN ---
     const SUPABASE_URL = "https://jiitqxjhxteayixongez.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; // <-- Reemplazá por tu clave que empieza con eyJ
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; // <-- ¡REEMPLAZAR!
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    const loginScreen = document.getElementById("login-screen");
-    const appScreen = document.getElementById("app-screen");
-    const playlistContainer = document.getElementById("playlist");
-    const audioPlayer = document.getElementById("audio-player");
-    const statusText = document.getElementById("status");
-    
     let songs = [];
     let currentIndex = -1;
+    let isPlaying = false;
+
+    // Referencias DOM
+    const audioPlayer = document.getElementById("audio-player");
+    const playIcon = document.getElementById("play-icon");
+    const progressBar = document.getElementById("progress-bar");
+    const volumeBar = document.getElementById("volume-bar");
+    const timeCurrent = document.getElementById("time-current");
+    const timeTotal = document.getElementById("time-total");
 
     // --- 2. AUTENTICACIÓN ---
     async function checkUser() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
-        loginScreen.style.display = "none";
-        appScreen.style.display = "flex";
+        document.getElementById("login-screen").style.display = "none";
+        document.getElementById("app-screen").style.display = "flex";
         loadTracks();
       } else {
-        loginScreen.style.display = "flex";
-        appScreen.style.display = "none";
+        document.getElementById("login-screen").style.display = "flex";
+        document.getElementById("app-screen").style.display = "none";
       }
     }
 
@@ -112,13 +206,14 @@
     // --- 3. CARGAR CANCIONES ---
     async function loadTracks() {
       const { data, error } = await supabaseClient.from("tracks").select("*").order("id", { ascending: true });
-      if (error) {
-        console.error("Error cargando canciones:", error);
-        return;
-      }
+      if (error) return console.error(error);
       songs = data || [];
-      
-      playlistContainer.innerHTML = songs.length ? "" : "No hay canciones en tu biblioteca.";
+      renderPlaylist();
+    }
+
+    function renderPlaylist() {
+      const container = document.getElementById("playlist");
+      container.innerHTML = songs.length ? "" : "No hay canciones en tu biblioteca.";
       songs.forEach((song, index) => {
         const card = document.createElement("div");
         card.className = `track-card ${index === currentIndex ? 'active' : ''}`;
@@ -130,34 +225,94 @@
             <p>${song.artist} • ${song.album}</p>
           </div>
         `;
-        playlistContainer.appendChild(card);
+        container.appendChild(card);
       });
     }
 
-    // --- 4. REPRODUCCIÓN ---
+    // --- 4. CONTROL DE REPRODUCCIÓN ---
     function playSong(index) {
+      if (index < 0 || index >= songs.length) return;
       currentIndex = index;
       const song = songs[currentIndex];
+      
+      // Actualizar UI del reproductor inferior
+      document.getElementById("player-cover").src = song.cover_url || 'https://via.placeholder.com/56';
+      document.getElementById("player-title").innerText = song.title;
+      document.getElementById("player-artist").innerText = song.artist;
+      
+      // Reproducir
       audioPlayer.src = song.url;
       audioPlayer.play();
-      document.getElementById("now-playing").innerHTML = `<b>${song.title}</b> - ${song.artist}`;
-      loadTracks(); // Para marcar la tarjeta activa
+      isPlaying = true;
+      playIcon.innerText = "pause";
+      
+      renderPlaylist(); // Refrescar lista para marcar activa
     }
-    
-    audioPlayer.addEventListener("ended", () => {
+
+    function togglePlay() {
+      if (currentIndex === -1 && songs.length > 0) return playSong(0); // Si no hay nada, reproduce la primera
+      if (currentIndex === -1) return;
+
+      if (isPlaying) {
+        audioPlayer.pause();
+        playIcon.innerText = "play_arrow";
+      } else {
+        audioPlayer.play();
+        playIcon.innerText = "pause";
+      }
+      isPlaying = !isPlaying;
+    }
+
+    function playNext() {
       if (currentIndex < songs.length - 1) playSong(currentIndex + 1);
+    }
+
+    function playPrevious() {
+      if (currentIndex > 0) playSong(currentIndex - 1);
+    }
+
+    // --- 5. TIEMPO, BARRA DE PROGRESO Y VOLUMEN ---
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s < 10 ? '0' : ''}${s}`;
+    }
+
+    // Cuando el audio carga, define la duración total
+    audioPlayer.addEventListener("loadedmetadata", () => {
+      progressBar.max = audioPlayer.duration;
+      timeTotal.innerText = formatTime(audioPlayer.duration);
     });
 
-    // --- 5. SUBIDA MEJORADA CON MANEJO DE ERRORES ---
+    // Mientras se reproduce, avanza la barra
+    audioPlayer.addEventListener("timeupdate", () => {
+      progressBar.value = audioPlayer.currentTime;
+      timeCurrent.innerText = formatTime(audioPlayer.currentTime);
+    });
+
+    // Pasar a la siguiente al terminar
+    audioPlayer.addEventListener("ended", playNext);
+
+    // Si el usuario hace clic en la barra para adelantar
+    progressBar.addEventListener("input", () => {
+      audioPlayer.currentTime = progressBar.value;
+    });
+
+    // Control de volumen
+    volumeBar.addEventListener("input", () => {
+      audioPlayer.volume = volumeBar.value / 100;
+    });
+
+    // --- 6. SUBIDA (Igual que antes) ---
     document.getElementById("file-input").addEventListener("change", async (e) => {
       const file = e.target.files[0];
+      const statusText = document.getElementById("status");
       if (!file) return;
-
-      // Limpia el input por si querés subir la misma canción después de un error
       e.target.value = '';
 
       statusText.style.color = "var(--accent)";
-      statusText.innerText = "Preparando archivo...";
+      statusText.innerText = "Leyendo datos y subiendo...";
 
       const procesarSubida = async (tags) => {
         try {
@@ -167,42 +322,30 @@
 
           let cover_url = null;
           if (tags && tags.picture) {
-            statusText.innerText = "Subiendo portada...";
             const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
             const coverPath = `covers/cover_${Date.now()}.jpg`;
-            const { error: coverError } = await supabaseClient.storage.from("canciones").upload(coverPath, blob);
-            if (coverError) throw new Error("Permiso denegado para subir imagen: " + coverError.message);
+            await supabaseClient.storage.from("canciones").upload(coverPath, blob);
             cover_url = supabaseClient.storage.from("canciones").getPublicUrl(coverPath).data.publicUrl;
           }
 
-          statusText.innerText = "Subiendo audio a Supabase...";
           const audioPath = `audios/audio_${Date.now()}.mp3`;
-          const { error: audioError } = await supabaseClient.storage.from("canciones").upload(audioPath, file);
-          if (audioError) throw new Error("Permiso denegado para subir audio: " + audioError.message);
+          await supabaseClient.storage.from("canciones").upload(audioPath, file);
           const audio_url = supabaseClient.storage.from("canciones").getPublicUrl(audioPath).data.publicUrl;
 
-          statusText.innerText = "Guardando título y artista en la base de datos...";
-          const { error: insertError } = await supabaseClient.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
-          if (insertError) throw new Error("Permiso denegado en la Base de Datos: " + insertError.message);
+          await supabaseClient.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
 
           statusText.innerText = "¡Subida exitosa!";
           setTimeout(() => statusText.innerText = "", 4000);
-          loadTracks(); // Vuelve a cargar la lista para que aparezca la nueva canción
-
+          loadTracks();
         } catch (err) {
-          console.error(err);
-          statusText.style.color = "#ff4444"; // Letras rojas para el error
+          statusText.style.color = "#ff4444";
           statusText.innerText = "ERROR: " + err.message;
         }
       };
 
-      // Intentamos leer la portada y nombre, pero si falla, subimos el archivo igual
       window.jsmediatags.read(file, {
         onSuccess: function(tag) { procesarSubida(tag.tags); },
-        onError: function(error) { 
-          console.warn("No hay metadatos, subiendo con nombre normal...", error);
-          procesarSubida(null); 
-        }
+        onError: function() { procesarSubida(null); }
       });
     });
 
