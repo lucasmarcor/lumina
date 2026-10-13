@@ -11,13 +11,10 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background-color: var(--bg); color: var(--text); display: flex; flex-direction: column; height: 100vh; }
     
-    /* Pantalla de Login */
     #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
     .btn-google { background: #ffffff; color: #000; border: none; padding: 12px 24px; border-radius: 24px; font-weight: bold; cursor: pointer; font-size: 1rem; margin-top: 20px; display: flex; align-items: center; gap: 10px; }
     
-    /* App Principal (Oculta por defecto) */
     #app-screen { display: none; flex-direction: column; height: 100vh; }
-    
     header { padding: 20px; border-bottom: 1px solid #282828; display: flex; justify-content: space-between; align-items: center; }
     .header-buttons { display: flex; gap: 10px; }
     .btn { background: var(--accent); color: #000; border: none; padding: 10px 16px; border-radius: 20px; font-weight: bold; cursor: pointer; }
@@ -36,12 +33,11 @@
     
     footer { background-color: #181818; padding: 16px; text-align: center; border-top: 1px solid #282828; }
     audio { width: 100%; max-width: 600px; height: 40px; margin-top: 10px; }
-    #status { color: var(--accent); font-size: 0.9rem; text-align: center; margin-bottom: 10px; }
+    #status { font-size: 0.9rem; text-align: center; margin-bottom: 10px; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <!-- PANTALLA DE LOGIN -->
   <div id="login-screen">
     <h1>🎧 Mi Música Privada</h1>
     <p style="color: var(--text-muted); margin-top: 10px;">Iniciá sesión para acceder a tu biblioteca</p>
@@ -51,7 +47,6 @@
     </button>
   </div>
 
-  <!-- PANTALLA DE LA APP -->
   <div id="app-screen">
     <header>
       <h1>Mi Biblioteca</h1>
@@ -74,12 +69,9 @@
   </div>
 
   <script>
-    // --- 1. REEMPLAZÁ CON TUS DATOS DE SUPABASE ---
+    // --- 1. CONFIGURACIÓN ---
     const SUPABASE_URL = "https://jiitqxjhxteayixongez.supabase.co";
-    // Pegá acá tu clave que empieza con eyJ...
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; 
-    
-    // ACÁ ESTÁ EL ARREGLO: Le cambiamos el nombre a supabaseClient para que no haya conflicto
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; // <-- Reemplazá por tu clave que empieza con eyJ
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const loginScreen = document.getElementById("login-screen");
@@ -91,7 +83,7 @@
     let songs = [];
     let currentIndex = -1;
 
-    // --- 2. SISTEMA DE AUTENTICACIÓN ---
+    // --- 2. AUTENTICACIÓN ---
     async function checkUser() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
@@ -105,14 +97,12 @@
     }
 
     async function loginGoogle() {
-  const { error } = await supabaseClient.auth.signInWithOAuth({ 
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin + window.location.pathname
+      const { error } = await supabaseClient.auth.signInWithOAuth({ 
+        provider: 'google',
+        options: { redirectTo: window.location.origin + window.location.pathname }
+      });
+      if (error) alert("Error al iniciar sesión: " + error.message);
     }
-  });
-  if (error) alert("Error al iniciar sesión: " + error.message);
-}
 
     async function logout() {
       await supabaseClient.auth.signOut();
@@ -122,10 +112,13 @@
     // --- 3. CARGAR CANCIONES ---
     async function loadTracks() {
       const { data, error } = await supabaseClient.from("tracks").select("*").order("id", { ascending: true });
-      if (error) return console.error(error);
-      songs = data;
+      if (error) {
+        console.error("Error cargando canciones:", error);
+        return;
+      }
+      songs = data || [];
       
-      playlistContainer.innerHTML = songs.length ? "" : "No hay canciones. ¡Subí una!";
+      playlistContainer.innerHTML = songs.length ? "" : "No hay canciones en tu biblioteca.";
       songs.forEach((song, index) => {
         const card = document.createElement("div");
         card.className = `track-card ${index === currentIndex ? 'active' : ''}`;
@@ -148,60 +141,71 @@
       audioPlayer.src = song.url;
       audioPlayer.play();
       document.getElementById("now-playing").innerHTML = `<b>${song.title}</b> - ${song.artist}`;
-      loadTracks();
+      loadTracks(); // Para marcar la tarjeta activa
     }
     
     audioPlayer.addEventListener("ended", () => {
       if (currentIndex < songs.length - 1) playSong(currentIndex + 1);
     });
 
-    // --- 5. SUBIDA Y LECTURA DE METADATOS ---
+    // --- 5. SUBIDA MEJORADA CON MANEJO DE ERRORES ---
     document.getElementById("file-input").addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      statusText.innerText = "Leyendo metadatos...";
-      window.jsmediatags.read(file, {
-        onSuccess: async function(tag) {
-          try {
-            const tags = tag.tags;
-            const title = tags.title || file.name.replace(/\.[^/.]+$/, "");
-            const artist = tags.artist || "Desconocido";
-            const album = tags.album || "Desconocido";
+      // Limpia el input por si querés subir la misma canción después de un error
+      e.target.value = '';
 
-            let cover_url = null;
-            if (tags.picture) {
-              statusText.innerText = "Subiendo portada...";
-              const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
-              const coverPath = `covers/cover_${Date.now()}.jpg`;
-              await supabaseClient.storage.from("canciones").upload(coverPath, blob);
-              cover_url = supabaseClient.storage.from("canciones").getPublicUrl(coverPath).data.publicUrl;
-            }
+      statusText.style.color = "var(--accent)";
+      statusText.innerText = "Preparando archivo...";
 
-            statusText.innerText = "Subiendo audio (esto puede demorar)...";
-            const audioPath = `audios/audio_${Date.now()}.mp3`;
-            await supabaseClient.storage.from("canciones").upload(audioPath, file);
-            const audio_url = supabaseClient.storage.from("canciones").getPublicUrl(audioPath).data.publicUrl;
+      const procesarSubida = async (tags) => {
+        try {
+          const title = (tags && tags.title) ? tags.title : file.name.replace(/\.[^/.]+$/, "");
+          const artist = (tags && tags.artist) ? tags.artist : "Desconocido";
+          const album = (tags && tags.album) ? tags.album : "Desconocido";
 
-            statusText.innerText = "Guardando información...";
-            await supabaseClient.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
-
-            statusText.innerText = "¡Subida completada!";
-            setTimeout(() => statusText.innerText = "", 3000);
-            loadTracks();
-          } catch (err) {
-            console.error(err);
-            statusText.innerText = "Error subiendo el archivo.";
+          let cover_url = null;
+          if (tags && tags.picture) {
+            statusText.innerText = "Subiendo portada...";
+            const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
+            const coverPath = `covers/cover_${Date.now()}.jpg`;
+            const { error: coverError } = await supabaseClient.storage.from("canciones").upload(coverPath, blob);
+            if (coverError) throw new Error("Permiso denegado para subir imagen: " + coverError.message);
+            cover_url = supabaseClient.storage.from("canciones").getPublicUrl(coverPath).data.publicUrl;
           }
-        },
-        onError: function(error) {
-          console.error(error);
-          statusText.innerText = "Error leyendo metadatos.";
+
+          statusText.innerText = "Subiendo audio a Supabase...";
+          const audioPath = `audios/audio_${Date.now()}.mp3`;
+          const { error: audioError } = await supabaseClient.storage.from("canciones").upload(audioPath, file);
+          if (audioError) throw new Error("Permiso denegado para subir audio: " + audioError.message);
+          const audio_url = supabaseClient.storage.from("canciones").getPublicUrl(audioPath).data.publicUrl;
+
+          statusText.innerText = "Guardando título y artista en la base de datos...";
+          const { error: insertError } = await supabaseClient.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
+          if (insertError) throw new Error("Permiso denegado en la Base de Datos: " + insertError.message);
+
+          statusText.innerText = "¡Subida exitosa!";
+          setTimeout(() => statusText.innerText = "", 4000);
+          loadTracks(); // Vuelve a cargar la lista para que aparezca la nueva canción
+
+        } catch (err) {
+          console.error(err);
+          statusText.style.color = "#ff4444"; // Letras rojas para el error
+          statusText.innerText = "ERROR: " + err.message;
+        }
+      };
+
+      // Intentamos leer la portada y nombre, pero si falla, subimos el archivo igual
+      window.jsmediatags.read(file, {
+        onSuccess: function(tag) { procesarSubida(tag.tags); },
+        onError: function(error) { 
+          console.warn("No hay metadatos, subiendo con nombre normal...", error);
+          procesarSubida(null); 
         }
       });
     });
 
-    // Verificar si hay sesión activa al abrir la página
     checkUser();
   </script>
 </body>
