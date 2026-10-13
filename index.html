@@ -76,11 +76,11 @@
   <script>
     // --- 1. REEMPLAZÁ CON TUS DATOS DE SUPABASE ---
     const SUPABASE_URL = "https://jiitqxjhxteayixongez.supabase.co";
-    // REEMPLAZAR LA CLAVE DE ABAJO POR TU CLAVE 'anon public' QUE EMPIEZA CON eyJ...
+    // Pegá acá tu clave que empieza con eyJ...
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImppaXRxeGpoeHRlYXlpeG9uZ2V6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5MjI3MzAsImV4cCI6MjEwNzQ5ODczMH0.4lli6xh7WnW-B2dIhNgzEjgeJzmGt8J3w93hOBgue3g"; 
     
-    // Solo declaramos 'supabase' una única vez:
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // ACÁ ESTÁ EL ARREGLO: Le cambiamos el nombre a supabaseClient para que no haya conflicto
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const loginScreen = document.getElementById("login-screen");
     const appScreen = document.getElementById("app-screen");
@@ -93,32 +93,30 @@
 
     // --- 2. SISTEMA DE AUTENTICACIÓN ---
     async function checkUser() {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session } } = await supabaseClient.auth.getSession();
       if (session) {
-        // Usuario logueado: mostrar app y cargar música
         loginScreen.style.display = "none";
         appScreen.style.display = "flex";
         loadTracks();
       } else {
-        // No logueado: mostrar login
         loginScreen.style.display = "flex";
         appScreen.style.display = "none";
       }
     }
 
     async function loginGoogle() {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'google' });
       if (error) alert("Error al iniciar sesión: " + error.message);
     }
 
     async function logout() {
-      await supabase.auth.signOut();
-      window.location.reload(); // Recargar la página limpia
+      await supabaseClient.auth.signOut();
+      window.location.reload(); 
     }
 
     // --- 3. CARGAR CANCIONES ---
     async function loadTracks() {
-      const { data, error } = await supabase.from("tracks").select("*").order("id", { ascending: true });
+      const { data, error } = await supabaseClient.from("tracks").select("*").order("id", { ascending: true });
       if (error) return console.error(error);
       songs = data;
       
@@ -152,7 +150,7 @@
       if (currentIndex < songs.length - 1) playSong(currentIndex + 1);
     });
 
-    // --- 5. SUBIDA Y LECTURA DE METADATOS (Sin cambios) ---
+    // --- 5. SUBIDA Y LECTURA DE METADATOS ---
     document.getElementById("file-input").addEventListener("change", async (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -171,17 +169,17 @@
               statusText.innerText = "Subiendo portada...";
               const blob = new Blob([new Uint8Array(tags.picture.data)], { type: tags.picture.format });
               const coverPath = `covers/cover_${Date.now()}.jpg`;
-              await supabase.storage.from("canciones").upload(coverPath, blob);
-              cover_url = supabase.storage.from("canciones").getPublicUrl(coverPath).data.publicUrl;
+              await supabaseClient.storage.from("canciones").upload(coverPath, blob);
+              cover_url = supabaseClient.storage.from("canciones").getPublicUrl(coverPath).data.publicUrl;
             }
 
             statusText.innerText = "Subiendo audio (esto puede demorar)...";
             const audioPath = `audios/audio_${Date.now()}.mp3`;
-            await supabase.storage.from("canciones").upload(audioPath, file);
-            const audio_url = supabase.storage.from("canciones").getPublicUrl(audioPath).data.publicUrl;
+            await supabaseClient.storage.from("canciones").upload(audioPath, file);
+            const audio_url = supabaseClient.storage.from("canciones").getPublicUrl(audioPath).data.publicUrl;
 
             statusText.innerText = "Guardando información...";
-            await supabase.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
+            await supabaseClient.from("tracks").insert([{ title, artist, album, url: audio_url, cover_url }]);
 
             statusText.innerText = "¡Subida completada!";
             setTimeout(() => statusText.innerText = "", 3000);
